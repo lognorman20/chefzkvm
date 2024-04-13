@@ -1,8 +1,7 @@
 use serde::ser::{Serialize, SerializeStruct};
 use std::ops;
 
-/// The Extended Euclidean Algorithm to calculate the multiplicate inverse of a
-/// `FieldElement`.
+/// Implementation from (https://stackoverflow.com/a/70501399)
 pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
     assert!(b != 0);
     let (mut r0, mut r1) = (a, b);

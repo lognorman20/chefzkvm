@@ -5,5 +5,5 @@ mod algebra;
 fn main() {
     // let p: u128 = 1 + 407 * ( 1 << 119 );
     // let field = Field::new(p);
-    println!("{:?}", xgcd(25, 10));
+    println!("{:?}", xgcd(7489401029, 12123));
 }
