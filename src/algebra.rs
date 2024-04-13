@@ -19,7 +19,7 @@ pub fn xgcd(a: i128, b: i128) -> (i128, i128, i128) {
     (old_s, old_t, old_r)
 }
 #[derive(Default, Copy, Clone, Debug)]
-struct FieldElement {
+pub struct FieldElement {
     value: u128,
     field: Field
 }
@@ -109,11 +109,15 @@ impl FieldElement {
 }
 
 #[derive(Default, Clone, Copy, Debug)]
-struct Field {
+pub struct Field {
     p: u128
 }
 
 impl Field {
+    pub fn new(p: u128) -> Self {
+        Field { p }
+    }
+
     pub fn zero() -> FieldElement {
         todo!()
     }
@@ -123,7 +127,7 @@ impl Field {
     }
 
     pub fn add(&self, a: FieldElement, b: FieldElement) -> FieldElement {
-        todo!()
+        FieldElement { value: (a.value + b.value) % self.p, field: *self }
     }
 
     pub fn multiply(&self, a: FieldElement, b: FieldElement) -> FieldElement {
