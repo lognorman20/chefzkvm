@@ -1,5 +1,10 @@
+use bincode::Error;
 use serde::ser::{Serialize, SerializeStruct};
+use std::error::Error as StdError;
 use std::ops;
+
+const GENERATOR: u128 = 85408008396924667383611388730472331217;
+const FIELD_SIZE: u128 = 1 + 407 * (1 << 119);
 
 /// Implementation from (https://stackoverflow.com/a/70501399)
 pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
@@ -22,7 +27,7 @@ pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
         s0 = s0 + q * s1;
         (s0, s1) = (s1, s0);
 
-        t0 = t0 + q *t1;
+        t0 = t0 + q * t1;
         (t0, t1) = (t1, t0);
 
         n += 1;
@@ -83,7 +88,6 @@ impl ops::Neg for FieldElement {
     }
 }
 
-/// Modular exponentiation, NOT bitwise xor fr
 impl PartialEq for FieldElement {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
@@ -116,15 +120,19 @@ impl FieldElement {
     }
 
     fn modexp(&self, exponent: u128) -> Self {
-        let mut c = 1;
-        for _i in 0..exponent - 1 {
-            c = (c * self.value) % self.field.p;
+        let mut acc = FieldElement::new(1, self.field);
+        let val = FieldElement::new(self.value, self.field);
+
+        let binary_str = format!("{:b}", exponent);
+        for i in (0..binary_str.len() - 2).rev() {
+            println!("{:?}", acc);
+            acc = acc * acc;
+            if (1 << i) & exponent != 0 {
+                acc = acc * val;
+            }
         }
 
-        FieldElement {
-            value: c,
-            field: self.field,
-        }
+        acc
     }
 
     fn is_zero(&self) -> bool {
@@ -140,6 +148,19 @@ impl FieldElement {
 pub struct Field {
     p: u128,
 }
+
+#[derive(Debug)]
+pub struct FieldError {
+    message: String,
+}
+
+impl std::fmt::Display for FieldError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl StdError for FieldError {}
 
 impl Serialize for Field {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -216,5 +237,43 @@ impl Field {
             value: a,
             field: *self,
         }
+    }
+
+    pub fn generator(&self) -> FieldElement {
+        assert!(self.p == FIELD_SIZE, "bro what field is that");
+        return FieldElement {
+            value: GENERATOR,
+            field: *self,
+        };
+    }
+
+    /// Ensures STARK property that the subgroup of power-of-two order exists by
+    /// generating the "primitive nth root"
+    pub fn primite_nth_root(&self, n: u128) -> Result<FieldElement, FieldError> {
+        if self.p == FIELD_SIZE {
+            assert!(
+                n <= 1 << 119 && (n & (n - 1)) == 0,
+                "field doesn't have the nth root of unity bro"
+            );
+            let mut root = FieldElement::new(GENERATOR, *self);
+            let mut order: u128 = 1 << 119;
+            while order != n {
+                root = root.modexp(2);
+                order = order / 2;
+            }
+            Ok(root)
+        } else {
+            Err(FieldError { message: "u don't even know the field, how am i supposed to get the return root of unity???".to_string() })
+        }
+    }
+
+    /// Gets random bytes and turn them into a field element.
+    pub fn sample(&self, byte_array: Vec<u128>) -> FieldElement {
+        let mut acc: u128 = 0;
+        for b in byte_array {
+            acc = (acc << 8) ^ b;
+        }
+
+        FieldElement { value: acc % self.p, field: *self }
     }
 }
