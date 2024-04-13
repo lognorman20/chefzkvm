@@ -1,11 +1,9 @@
-use crate::algebra::{Field, FieldElement};
+use crate::algebra::{xgcd, Field, FieldElement};
 
 mod algebra;
 
 fn main() {
-    let field = Field::new(5);
-    let a = FieldElement::new(10, field);
-    let b = FieldElement::new(3, field);
-    let res = a + b;
-    println!("{:?}", res);
+    // let p: u128 = 1 + 407 * ( 1 << 119 );
+    // let field = Field::new(p);
+    println!("{:?}", xgcd(25, 10));
 }

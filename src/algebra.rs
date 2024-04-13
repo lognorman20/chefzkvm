@@ -3,26 +3,44 @@ use std::ops;
 
 /// The Extended Euclidean Algorithm to calculate the multiplicate inverse of a
 /// `FieldElement`.
-pub fn xgcd(a: i128, b: i128) -> (i128, i128, i128) {
+pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
     assert!(b != 0);
+    let (mut r0, mut r1) = (a, b);
+    let (mut s0, mut s1) = (1, 0);
+    let (mut t0, mut t1) = (0, 1);
 
-    let (mut old_r, mut r) = (a, b);
-    let (mut old_s, mut s) = (1, 0);
-    let (mut old_t, mut t) = (0, 1);
+    let mut n = 0;
+    while r1 != 0 {
+        let q = r0 / r1;
 
-    while r != 0 {
-        let quotient = old_r / r;
-        (old_r, r) = (r, old_r - quotient * r);
-        (old_s, s) = (s, old_s - quotient * s);
-        (old_t, t) = (t, old_t - quotient * t);
+        r0 = if r0 > q * r1 {
+            r0 - q * r1
+        } else {
+            q * r1 - r0
+        };
+        (r0, r1) = (r1, r0);
+
+        s0 = s0 + q * s1;
+        (s0, s1) = (s1, s0);
+
+        t0 = t0 + q *t1;
+        (t0, t1) = (t1, t0);
+
+        n += 1;
     }
 
-    (old_s, old_t, old_r)
+    if n % 2 != 0 {
+        s0 = b - s0;
+    } else {
+        t0 = a - t0;
+    }
+
+    (s0, t0, r0)
 }
 
 #[derive(Default, Copy, Clone, Debug)]
 pub struct FieldElement {
-    value: i128,
+    value: u128,
     field: Field,
 }
 
@@ -90,7 +108,7 @@ impl Serialize for FieldElement {
 }
 
 impl FieldElement {
-    pub fn new(value: i128, field: Field) -> Self {
+    pub fn new(value: u128, field: Field) -> Self {
         Self { value, field }
     }
 
@@ -98,9 +116,9 @@ impl FieldElement {
         self.field.inverse(*self)
     }
 
-    fn modexp(&self, exponent: i128) -> Self {
+    fn modexp(&self, exponent: u128) -> Self {
         let mut c = 1;
-        for i in 0..exponent - 1 {
+        for _i in 0..exponent - 1 {
             c = (c * self.value) % self.field.p;
         }
 
@@ -121,7 +139,7 @@ impl FieldElement {
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Field {
-    p: i128,
+    p: u128,
 }
 
 impl Serialize for Field {
@@ -136,7 +154,7 @@ impl Serialize for Field {
 }
 
 impl Field {
-    pub fn new(p: i128) -> Self {
+    pub fn new(p: u128) -> Self {
         Field { p }
     }
 
@@ -177,7 +195,7 @@ impl Field {
 
     pub fn divide(&self, a: FieldElement, b: FieldElement) -> FieldElement {
         assert!(!b.is_zero());
-        let (s, t, r) = xgcd(a.value, b.value);
+        let (s, _t, _r) = xgcd(a.value, b.value);
 
         FieldElement {
             value: (a.value * s) % self.p,
@@ -193,7 +211,7 @@ impl Field {
     }
 
     pub fn inverse(&self, operand: FieldElement) -> FieldElement {
-        let (a, b, g) = xgcd(operand.value, self.p);
+        let (a, _b, _g) = xgcd(operand.value, self.p);
 
         FieldElement {
             value: a,
