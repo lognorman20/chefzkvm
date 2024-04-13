@@ -20,7 +20,7 @@ pub fn xgcd(a: i128, b: i128) -> (i128, i128, i128) {
 }
 #[derive(Default, Copy, Clone, Debug)]
 pub struct FieldElement {
-    value: u128,
+    value: i128,
     field: Field
 }
 
@@ -91,7 +91,7 @@ impl Serialize for FieldElement {
 }
 
 impl FieldElement {
-    pub fn new(value: u128, field: Field) -> Self{
+    pub fn new(value: i128, field: Field) -> Self{
         Self { value, field}
     }
 
@@ -110,20 +110,20 @@ impl FieldElement {
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Field {
-    p: u128
+    p: i128
 }
 
 impl Field {
-    pub fn new(p: u128) -> Self {
+    pub fn new(p: i128) -> Self {
         Field { p }
     }
 
-    pub fn zero() -> FieldElement {
-        todo!()
+    pub fn zero(&self) -> FieldElement {
+        FieldElement { value: 0, field: *self }
     }
 
-    pub fn one() -> FieldElement {
-        todo!()
+    pub fn one(&self) -> FieldElement {
+        FieldElement { value: 1, field: *self }
     }
 
     pub fn add(&self, a: FieldElement, b: FieldElement) -> FieldElement {
@@ -131,22 +131,27 @@ impl Field {
     }
 
     pub fn multiply(&self, a: FieldElement, b: FieldElement) -> FieldElement {
-        todo!()
+        FieldElement { value: (a.value * b.value) % self.p, field: *self }
     }
 
     pub fn subtract(&self, a: FieldElement, b: FieldElement) -> FieldElement {
-        todo!()
+        FieldElement { value: (a.value - b.value) % self.p, field: *self }
     }
 
     pub fn divide(&self, a: FieldElement, b: FieldElement) -> FieldElement {
-        todo!()
+        assert!(!b.is_zero());
+        let (s, t, r) = xgcd(a.value, b.value);
+
+        FieldElement { value: (a.value * s) % self.p , field: *self }
     }
 
     pub fn negate(&self, operand: FieldElement) -> FieldElement {
-        todo!()
+        FieldElement { value: (self.p - operand.value) % self.p, field: *self }
     }
 
     pub fn inverse(&self, operand: FieldElement) -> FieldElement {
-        todo!()
+        let (a, b, g) = xgcd(operand.value, self.p);
+
+        FieldElement { value: a, field: *self }
     }
 }
