@@ -1,5 +1,5 @@
 use std::ops;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 /// The Extended Euclidean Algorithm to calculate the multiplicate inverse of a
 /// `FieldElement`.
@@ -18,7 +18,7 @@ pub fn xgcd(a: i128, b: i128) -> (i128, i128, i128) {
 
     (old_s, old_t, old_r)
 }
-#[derive(Default, Debug)]
+#[derive(Default, Copy, Clone, Debug)]
 struct FieldElement {
     value: u128,
     field: Field
@@ -28,7 +28,7 @@ impl ops::Add for FieldElement {
     type Output = FieldElement;
 
     fn add(self, rhs: Self) -> Self::Output {
-        todo!()
+        self.field.add(self, rhs)
     }
 }
 
@@ -36,7 +36,7 @@ impl ops::Mul for FieldElement {
     type Output = FieldElement;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        todo!()
+        self.field.multiply(self, rhs)
     }
 }
 
@@ -44,7 +44,7 @@ impl ops::Sub for FieldElement {
     type Output = FieldElement;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        todo!()
+        self.field.subtract(self, rhs)
     }
 }
 
@@ -52,7 +52,7 @@ impl ops::Div for FieldElement {
     type Output = FieldElement;
     
     fn div(self, rhs: Self) -> Self::Output {
-        todo!()
+        self.field.divide(self, rhs)
     }
 }
 
@@ -60,7 +60,7 @@ impl ops::Neg for FieldElement {
     type Output = FieldElement;
     
     fn neg(self) -> Self::Output {
-        todo!()
+        self.field.negate(self)
     }
 }
 
@@ -95,8 +95,8 @@ impl FieldElement {
         Self { value, field}
     }
 
-    fn inverse(&self) -> Self {
-
+    fn inverse(&self) -> FieldElement {
+        self.field.inverse(*self)
     }
 
     fn is_zero(&self) -> bool {
@@ -108,41 +108,41 @@ impl FieldElement {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 struct Field {
     p: u128
 }
 
 impl Field {
-    fn zero() -> FieldElement {
-
+    pub fn zero() -> FieldElement {
+        todo!()
     }
 
-    fn one() -> FieldElement {
-
+    pub fn one() -> FieldElement {
+        todo!()
     }
 
-    fn add(a: FieldElement, b: FieldElement) -> FieldElement {
-
+    pub fn add(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+        todo!()
     }
 
-    fn multiply(a: FieldElement, b: FieldElement) -> FieldElement {
-
+    pub fn multiply(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+        todo!()
     }
 
-    fn subtract(a: FieldElement, b: FieldElement) -> FieldElement {
-
+    pub fn subtract(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+        todo!()
     }
 
-    fn divide(a: FieldElement, b: FieldElement) -> FieldElement {
-
+    pub fn divide(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+        todo!()
     }
 
-    fn negate(operand: FieldElement) -> FieldElement {
-
+    pub fn negate(&self, operand: FieldElement) -> FieldElement {
+        todo!()
     }
 
-    fn inverse(operand: FieldElement) -> FieldElement {
-
+    pub fn inverse(&self, operand: FieldElement) -> FieldElement {
+        todo!()
     }
 }
