@@ -1,4 +1,3 @@
-use bincode::Error;
 use serde::ser::{Serialize, SerializeStruct};
 use std::error::Error as StdError;
 use std::ops;
@@ -44,8 +43,8 @@ pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
 
 #[derive(Default, Copy, Clone, Debug)]
 pub struct FieldElement {
-    value: u128,
-    field: Field,
+    pub value: u128,
+    pub field: Field,
 }
 
 impl ops::Add for FieldElement {
@@ -115,11 +114,11 @@ impl FieldElement {
         Self { value, field }
     }
 
-    fn inverse(&self) -> Self {
+    pub fn inverse(&self) -> Self {
         self.field.inverse(*self)
     }
 
-    fn modexp(&self, exponent: u128) -> Self {
+    pub fn modexp(&self, exponent: u128) -> Self {
         let mut acc = FieldElement::new(1, self.field);
         let val = FieldElement::new(self.value, self.field);
 
@@ -135,11 +134,11 @@ impl FieldElement {
         acc
     }
 
-    fn is_zero(&self) -> bool {
+    pub fn is_zero(&self) -> bool {
         self.value == 0
     }
 
-    fn bytes(&self) -> Vec<u8> {
+    pub fn bytes(&self) -> Vec<u8> {
         bincode::serialize(self).unwrap()
     }
 }
