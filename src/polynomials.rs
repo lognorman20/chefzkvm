@@ -1,6 +1,7 @@
 use crate::algebra::FieldElement;
 use std::{
     cmp::max,
+    ffi::NulError,
     ops::{self, Add},
 };
 
@@ -89,7 +90,7 @@ impl ops::Div for Polynomial {
     type Output = Polynomial;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let (quo, rem) = self.divide(self.clone(), rhs);
+        let (quo, rem) = self.divide(&self, &rhs).unwrap();
         assert!(rem.is_zero());
         quo
     }
@@ -103,6 +104,11 @@ impl PartialEq for Polynomial {
     fn ne(&self, rhs: &Self) -> bool {
         !self.eq(rhs)
     }
+}
+
+#[derive(Debug)]
+enum PolynomialError {
+    Message(String),
 }
 
 impl Polynomial {
@@ -150,8 +156,46 @@ impl Polynomial {
         }
     }
 
-    fn divide(&self, numerator: Self, denominator: Self) -> (Polynomial, Polynomial) {
-        unimplemented!()
+    fn divide(
+        &self,
+        numerator: &Self,
+        denominator: &Self,
+    ) -> Result<(Self, Self), PolynomialError> {
+        if denominator.degree() == -1 {
+            Err(PolynomialError::Message(String::from(
+                "can't divide by zero big bro",
+            )))
+        } else if numerator.degree() < denominator.degree() {
+            Ok((Polynomial::new(Vec::new()), numerator.clone()))
+        } else {
+            let field = denominator.coefficients[0].field;
+            let mut remainder = numerator.clone();
+            let mut quotient_coefficients: Vec<FieldElement> =
+                (0..numerator.degree() - denominator.degree() + 1)
+                    .map(|_| field.zero())
+                    .collect();
+            for i in 0..numerator.degree() - denominator.degree() + 1 {
+                if remainder.degree() < denominator.degree() {
+                    break;
+                } else {
+                    let coefficient =
+                        remainder.leading_coefficient() / denominator.leading_coefficient();
+                    let shift: usize = (remainder.degree() - denominator.degree())
+                        .try_into()
+                        .unwrap();
+                    let mut sub_coeff = (0..shift)
+                        .map(|_| field.zero())
+                        .collect::<Vec<FieldElement>>();
+                    sub_coeff.push(coefficient);
+                    let subtractee: Polynomial = Polynomial::new(sub_coeff) * (denominator.clone());
+                    quotient_coefficients[shift] = coefficient;
+                    remainder = remainder - subtractee;
+                }
+            }
+
+            let quotient = Polynomial::new(quotient_coefficients);
+            Ok((quotient, remainder))
+        }
     }
 
     pub fn modulo(&self) -> Self {
