@@ -118,16 +118,15 @@ impl FieldElement {
         self.field.inverse(*self)
     }
 
-    pub fn modexp(&self, exponent: u128) -> Self {
+    pub fn modexp(&self, exponent: i128) -> Self {
         let mut acc = FieldElement::new(1, self.field);
         let val = FieldElement::new(self.value, self.field);
 
         let binary_str = format!("{:b}", exponent);
         for i in (0..binary_str.len() - 2).rev() {
-            println!("{:?}", acc);
             acc = acc * acc;
             if (1 << i) & exponent != 0 {
-                acc = acc * val;
+                acc = acc * (*self);
             }
         }
 

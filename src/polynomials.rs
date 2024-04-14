@@ -108,7 +108,7 @@ impl PartialEq for Polynomial {
 
 #[derive(Debug)]
 enum PolynomialError {
-    Message(String),
+    DivByZero(String),
 }
 
 impl Polynomial {
@@ -116,16 +116,17 @@ impl Polynomial {
         Polynomial { coefficients }
     }
 
+    /// Returns the index of where the last non zero `FieldElement` is.
     pub fn degree(&self) -> i128 {
         let zero = self.coefficients[0].field.zero();
-        let zero_coeff_cnt = self
+        let non_zero_coeff_cnt = self
             .coefficients
             .iter()
             .filter(|fe| fe != &&zero)
             .collect::<Vec<_>>()
             .len();
 
-        if zero_coeff_cnt != 0 || self.coefficients.is_empty() {
+        if non_zero_coeff_cnt == 0 || self.coefficients.is_empty() {
             -1
         } else {
             let mut max_index = 0;
@@ -156,13 +157,14 @@ impl Polynomial {
         }
     }
 
+    /// Divides two `Polynomial`s and returns their `(Quotient, Remainder)`.
     fn divide(
         &self,
         numerator: &Self,
         denominator: &Self,
     ) -> Result<(Self, Self), PolynomialError> {
         if denominator.degree() == -1 {
-            Err(PolynomialError::Message(String::from(
+            Err(PolynomialError::DivByZero(String::from(
                 "can't divide by zero big bro",
             )))
         } else if numerator.degree() < denominator.degree() {
@@ -174,7 +176,7 @@ impl Polynomial {
                 (0..numerator.degree() - denominator.degree() + 1)
                     .map(|_| field.zero())
                     .collect();
-            for i in 0..numerator.degree() - denominator.degree() + 1 {
+            for _ in 0..numerator.degree() - denominator.degree() + 1 {
                 if remainder.degree() < denominator.degree() {
                     break;
                 } else {
@@ -198,11 +200,27 @@ impl Polynomial {
         }
     }
 
-    pub fn modulo(&self) -> Self {
-        unimplemented!()
+    pub fn modulo(&self, rhs: &Self) -> Self {
+        let (_quo, rem) = self.divide(self, rhs).unwrap();
+        rem
     }
 
-    pub fn modexp(&self, exponent: Self) -> Self {
-        unimplemented!()
+    pub fn modexp(&self, exponent: i128) -> Self {
+        if self.is_zero() {
+            Polynomial::new(Vec::new())
+        } else if exponent == 0 {
+            Polynomial::new(vec![self.coefficients[0].field.one()])
+        } else {
+            let mut acc = Polynomial::new(vec![self.coefficients[0].field.one()]);
+            let binary_str = format!("{:b}", exponent);
+            for i in (0..binary_str.len() - 2).rev() {
+                acc = acc * acc;
+                if (1 << i) & exponent != 0 {
+                    acc = acc * val;
+                }
+            }
+
+            acc
+        }
     }
 }
