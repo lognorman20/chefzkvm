@@ -126,7 +126,7 @@ impl FieldElement {
         for i in (0..binary_str.len() - 2).rev() {
             acc = acc * acc;
             if (1 << i) & exponent != 0 {
-                acc = acc * (*self);
+                acc = acc * val;
             }
         }
 

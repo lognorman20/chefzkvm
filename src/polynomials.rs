@@ -108,7 +108,7 @@ impl PartialEq for Polynomial {
 
 #[derive(Debug)]
 enum PolynomialError {
-    DivByZero(String),
+    DivByZero(String)
 }
 
 impl Polynomial {
@@ -214,9 +214,10 @@ impl Polynomial {
             let mut acc = Polynomial::new(vec![self.coefficients[0].field.one()]);
             let binary_str = format!("{:b}", exponent);
             for i in (0..binary_str.len() - 2).rev() {
-                acc = acc * acc;
+                let tmp = acc.clone();
+                acc = acc * tmp;
                 if (1 << i) & exponent != 0 {
-                    acc = acc * val;
+                    acc = acc * (self.clone());
                 }
             }
 
