@@ -1,19 +1,18 @@
-use serde::ser::{Serialize, SerializeStruct};
+use bigint::U256;
 use std::error::Error as StdError;
 use std::ops;
 
-const GENERATOR: u128 = 85408008396924667383611388730472331217;
-const FIELD_SIZE: u128 = 1 + 407 * (1 << 119);
-
 /// Implementation from (https://stackoverflow.com/a/70501399)
-pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
-    assert!(b != 0);
-    let (mut r0, mut r1) = (a, b);
-    let (mut s0, mut s1) = (1, 0);
-    let (mut t0, mut t1) = (0, 1);
+pub fn xgcd(a: &U256, b: &U256) -> (U256, U256, U256) {
+    let zero: U256 = U256::zero();
+    let one: U256 = U256::one();
+    assert!(*b != zero);
+    let (mut r0, mut r1) = (*a, *b);
+    let (mut s0, mut s1) = (one, zero);
+    let (mut t0, mut t1) = (zero, one);
 
     let mut n = 0;
-    while r1 != 0 {
+    while r1 != U256::zero() {
         let q = r0 / r1;
 
         r0 = if r0 > q * r1 {
@@ -33,9 +32,9 @@ pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
     }
 
     if n % 2 != 0 {
-        s0 = b - s0;
+        s0 = *b - s0;
     } else {
-        t0 = a - t0;
+        t0 = *a - t0;
     }
 
     (s0, t0, r0)
@@ -43,7 +42,7 @@ pub fn xgcd(a: u128, b: u128) -> (u128, u128, u128) {
 
 #[derive(Default, Copy, Clone, Debug)]
 pub struct FieldElement {
-    pub value: u128,
+    pub value: U256,
     pub field: Field,
 }
 
@@ -51,7 +50,7 @@ impl ops::Add for FieldElement {
     type Output = FieldElement;
 
     fn add(self, rhs: Self) -> Self::Output {
-        self.field.add(self, rhs)
+        self.field.add(&self, &rhs)
     }
 }
 
@@ -59,7 +58,7 @@ impl ops::Mul for FieldElement {
     type Output = FieldElement;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        self.field.multiply(self, rhs)
+        self.field.multiply(&self, &rhs)
     }
 }
 
@@ -67,7 +66,7 @@ impl ops::Sub for FieldElement {
     type Output = FieldElement;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        self.field.subtract(self, rhs)
+        self.field.subtract(&self, &rhs)
     }
 }
 
@@ -75,7 +74,7 @@ impl ops::Div for FieldElement {
     type Output = FieldElement;
 
     fn div(self, rhs: Self) -> Self::Output {
-        self.field.divide(self, rhs)
+        self.field.divide(&self, &rhs)
     }
 }
 
@@ -97,20 +96,8 @@ impl PartialEq for FieldElement {
     }
 }
 
-impl Serialize for FieldElement {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut state = serializer.serialize_struct("FieldElement", 2)?;
-        state.serialize_field("value", &self.value)?;
-        state.serialize_field("field", &self.field)?;
-        state.end()
-    }
-}
-
 impl FieldElement {
-    pub fn new(value: u128, field: Field) -> Self {
+    pub fn new(value: U256, field: Field) -> Self {
         Self { value, field }
     }
 
@@ -119,7 +106,8 @@ impl FieldElement {
     }
 
     pub fn modexp(&self, exponent: i128) -> Self {
-        let mut acc = FieldElement::new(1, self.field);
+        let one: U256 = U256::one();
+        let mut acc = FieldElement::new(one, self.field);
         let val = FieldElement::new(self.value, self.field);
 
         let binary_str = format!("{:b}", exponent);
@@ -134,17 +122,17 @@ impl FieldElement {
     }
 
     pub fn is_zero(&self) -> bool {
-        self.value == 0
+        self.value.is_zero()
     }
 
-    pub fn bytes(&self) -> Vec<u8> {
-        bincode::serialize(self).unwrap()
+    pub fn bytes(&self) -> String {
+        self.value.to_string()
     }
 }
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Field {
-    p: u128,
+    p: U256,
 }
 
 #[derive(Debug)]
@@ -160,60 +148,49 @@ impl std::fmt::Display for FieldError {
 
 impl StdError for FieldError {}
 
-impl Serialize for Field {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut state = serializer.serialize_struct("Field", 1)?;
-        state.serialize_field("p", &self.p)?;
-        state.end()
-    }
-}
-
 impl Field {
-    pub fn new(p: u128) -> Self {
+    pub fn new(p: U256) -> Self {
         Field { p }
     }
 
     pub fn zero(&self) -> FieldElement {
         FieldElement {
-            value: 0,
+            value: U256::zero(),
             field: *self,
         }
     }
 
     pub fn one(&self) -> FieldElement {
         FieldElement {
-            value: 1,
+            value: U256::one(),
             field: *self,
         }
     }
 
-    pub fn add(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+    pub fn add(&self, a: &FieldElement, b: &FieldElement) -> FieldElement {
         FieldElement {
             value: (a.value + b.value) % self.p,
             field: *self,
         }
     }
 
-    pub fn multiply(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+    pub fn multiply(&self, a: &FieldElement, b: &FieldElement) -> FieldElement {
         FieldElement {
             value: (a.value * b.value) % self.p,
             field: *self,
         }
     }
 
-    pub fn subtract(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+    pub fn subtract(&self, a: &FieldElement, b: &FieldElement) -> FieldElement {
         FieldElement {
             value: (a.value - b.value) % self.p,
             field: *self,
         }
     }
 
-    pub fn divide(&self, a: FieldElement, b: FieldElement) -> FieldElement {
+    pub fn divide(&self, a: &FieldElement, b: &FieldElement) -> FieldElement {
         assert!(!b.is_zero());
-        let (s, _t, _r) = xgcd(a.value, b.value);
+        let (s, _t, _r) = xgcd(&b.value, &self.p);
 
         FieldElement {
             value: (a.value * s) % self.p,
@@ -229,7 +206,7 @@ impl Field {
     }
 
     pub fn inverse(&self, operand: FieldElement) -> FieldElement {
-        let (a, _b, _g) = xgcd(operand.value, self.p);
+        let (a, _b, _g) = xgcd(&operand.value, &self.p);
 
         FieldElement {
             value: a,
@@ -238,26 +215,32 @@ impl Field {
     }
 
     pub fn generator(&self) -> FieldElement {
-        assert!(self.p == FIELD_SIZE, "bro what field is that");
+        let generator: U256 = U256::from_dec_str("85408008396924667383611388730472331217").unwrap();
+        let field_size: U256 = U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
+        assert!(self.p == field_size, "bro what field is that");
         return FieldElement {
-            value: GENERATOR,
+            value: generator,
             field: *self,
         };
     }
 
     /// Ensures STARK property that the subgroup of power-of-two order exists by
     /// generating the "primitive nth root"
-    pub fn primite_nth_root(&self, n: u128) -> Result<FieldElement, FieldError> {
-        if self.p == FIELD_SIZE {
+    pub fn primite_nth_root(&self, n: &U256) -> Result<FieldElement, FieldError> {
+        let zero: U256 = U256::zero();
+        let one: U256 = U256::one();
+        let generator: U256 = U256::from_dec_str("85408008396924667383611388730472331217").unwrap();
+        let field_size: U256 = U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
+        if self.p == field_size {
             assert!(
-                n <= 1 << 119 && (n & (n - 1)) == 0,
+                *n <= one << 119 && (*n & (*n - one)) == zero,
                 "field doesn't have the nth root of unity bro"
             );
-            let mut root = FieldElement::new(GENERATOR, *self);
-            let mut order: u128 = 1 << 119;
-            while order != n {
+            let mut root = FieldElement::new(generator, *self);
+            let mut order: U256 = one << 119;
+            while order != *n {
                 root = root.modexp(2);
-                order = order / 2;
+                order = order / U256::from(2);
             }
             Ok(root)
         } else {
@@ -266,12 +249,16 @@ impl Field {
     }
 
     /// Gets random bytes and turn them into a field element.
-    pub fn sample(&self, byte_array: Vec<u128>) -> FieldElement {
-        let mut acc: u128 = 0;
+    pub fn sample(&self, byte_array: &[U256]) -> FieldElement {
+        let zero: U256 = U256::zero();
+        let mut acc: U256 = zero;
         for b in byte_array {
-            acc = (acc << 8) ^ b;
+            acc = (acc << 8) ^ *b;
         }
 
-        FieldElement { value: acc % self.p, field: *self }
+        FieldElement {
+            value: acc % self.p,
+            field: *self,
+        }
     }
 }

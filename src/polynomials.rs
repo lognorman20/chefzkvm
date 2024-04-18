@@ -1,7 +1,6 @@
 use crate::algebra::FieldElement;
 use std::{
     cmp::max,
-    ffi::NulError,
     ops::{self, Add},
 };
 
@@ -31,7 +30,7 @@ impl ops::Add for Polynomial {
         } else {
             let field = self.coefficients[0].field;
             let mut acc: Vec<FieldElement> =
-                (1..max(self.coefficients.len(), rhs.coefficients.len()))
+                (0..max(self.coefficients.len(), rhs.coefficients.len()))
                     .map(|_| field.zero())
                     .collect();
 
@@ -65,7 +64,7 @@ impl ops::Mul for Polynomial {
                 coefficients: Vec::new(),
             }
         } else {
-            let zero = self.coefficients[0];
+            let zero = self.coefficients[0].field.zero();
             let mut buf: Vec<FieldElement> =
                 (0..(self.coefficients.len() + rhs.coefficients.len() - 1))
                     .map(|_| zero)
@@ -108,7 +107,7 @@ impl PartialEq for Polynomial {
 
 #[derive(Debug)]
 enum PolynomialError {
-    DivByZero(String)
+    DivByZero(String),
 }
 
 impl Polynomial {
