@@ -23,5 +23,5 @@ fn main() {
     let f_x = Polynomial::new(f_coefficients);
     let g_x = Polynomial::new(g_coefficients);
 
-    println!("{:#?}", f_x / g_x);
+    println!("{:#?}", f_x + g_x);
 }

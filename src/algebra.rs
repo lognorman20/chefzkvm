@@ -54,11 +54,23 @@ impl ops::Add for FieldElement {
     }
 }
 
+impl ops::AddAssign for FieldElement {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
 impl ops::Mul for FieldElement {
     type Output = FieldElement;
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.field.multiply(&self, &rhs)
+    }
+}
+
+impl ops::MulAssign for FieldElement {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
     }
 }
 
@@ -105,7 +117,7 @@ impl FieldElement {
         self.field.inverse(*self)
     }
 
-    pub fn modexp(&self, exponent: i128) -> Self {
+    pub fn modexp(&self, exponent: usize) -> Self {
         let one: U256 = U256::one();
         let mut acc = FieldElement::new(one, self.field);
         let val = FieldElement::new(self.value, self.field);
@@ -216,7 +228,8 @@ impl Field {
 
     pub fn generator(&self) -> FieldElement {
         let generator: U256 = U256::from_dec_str("85408008396924667383611388730472331217").unwrap();
-        let field_size: U256 = U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
+        let field_size: U256 =
+            U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
         assert!(self.p == field_size, "bro what field is that");
         return FieldElement {
             value: generator,
@@ -230,7 +243,8 @@ impl Field {
         let zero: U256 = U256::zero();
         let one: U256 = U256::one();
         let generator: U256 = U256::from_dec_str("85408008396924667383611388730472331217").unwrap();
-        let field_size: U256 = U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
+        let field_size: U256 =
+            U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
         if self.p == field_size {
             assert!(
                 *n <= one << 119 && (*n & (*n - one)) == zero,

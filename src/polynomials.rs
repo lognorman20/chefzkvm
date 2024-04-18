@@ -4,6 +4,7 @@ use std::{
     ops::{self, Add},
 };
 
+// TODO: Implement the copy trait to get rid of the `clone()` calls
 #[derive(Debug, Clone)]
 pub struct Polynomial {
     coefficients: Vec<FieldElement>,
@@ -222,5 +223,93 @@ impl Polynomial {
 
             acc
         }
+    }
+
+    pub fn evaluate(&self, point: &FieldElement) -> FieldElement {
+        let mut xi = point.field.one();
+        let mut value = point.field.zero();
+        for c in &self.coefficients {
+            value += *c * xi; // bad paradigm of dereferencing?
+            xi *= *point; // bad paradigm of dereferencing?
+        }
+
+        value
+    }
+
+    pub fn evaluate_domain(&self, domain: &Vec<FieldElement>) -> Vec<FieldElement> {
+        let mut res = Vec::new();
+        for p in domain {
+            let val = self.evaluate(p);
+            res.push(val);
+        }
+
+        res
+    }
+
+    pub fn interpolate_domain(
+        &self,
+        domain: &Vec<FieldElement>,
+        values: &Vec<FieldElement>,
+    ) -> Self {
+        assert!(
+            domain.len() == values.len(),
+            "domain and values not the same length big bro"
+        );
+        assert!(
+            domain.len() > 0,
+            "can't interpolate between two values big bro"
+        );
+
+        let field = domain[0].field;
+        let x = Polynomial::new(vec![field.zero(), field.one()]);
+        let mut acc = Polynomial::new(Vec::new());
+        for i in 0..domain.len() {
+            let mut prod = Polynomial::new(vec![values[i]]);
+            for j in 0..domain.len() {
+                if j == i {
+                    continue;
+                } else {
+                    let poly_a = Polynomial::new(vec![domain[j]]);
+                    let poly_b = Polynomial::new(vec![(domain[i] - domain[j]).inverse()]);
+                    prod = prod * ((x.clone() - poly_a) * poly_b); // bad paradigm for sureski
+                }
+            }
+            acc = acc + prod;
+        }
+
+        acc
+    }
+
+    pub fn zeroifier_domain(&self, domain: &Vec<FieldElement>) -> Self {
+        let field = domain[0].field;
+        let x = Polynomial::new(vec![field.zero(), field.one()]);
+        let mut acc = Polynomial::new(vec![field.one()]);
+        for d in domain {
+            acc = acc
+                * (x.clone()
+                    - Polynomial {
+                        coefficients: vec![*d],
+                    }); // bad paradigm for sureski
+        }
+        acc
+    }
+
+    pub fn scale(&self, factor: &FieldElement) -> Self {
+        Polynomial {
+            coefficients: (0..self.coefficients.len())
+                .map(|i| (factor.modexp(i)) * self.coefficients[i])
+                .collect(),
+        }
+    }
+
+    pub fn test_colinearity(&self, points: &Vec<(FieldElement, FieldElement)>) -> bool {
+        let (mut domain, mut values) = (Vec::new(), Vec::new());
+        let _ = points.iter().map(|pair| {
+            domain.push(pair.0);
+            values.push(pair.1);
+        });
+
+        let polynomial = self.interpolate_domain(&domain, &values);
+        polynomial.degree() <= 1
     }
 }
