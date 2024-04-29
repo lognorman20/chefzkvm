@@ -1,5 +1,6 @@
 use bigint::U256;
 use std::error::Error as StdError;
+use std::hash::Hash;
 use std::ops;
 
 /// Implementation from (https://stackoverflow.com/a/70501399)
@@ -98,6 +99,24 @@ impl ops::Neg for FieldElement {
     }
 }
 
+impl Hash for FieldElement {
+    fn hash_slice<H: std::hash::Hasher>(data: &[Self], state: &mut H)
+    where
+        Self: Sized,
+    {
+        for piece in data {
+            piece.hash(state)
+        }
+    }
+    
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+        self.field.hash(state);
+    }
+}
+
+impl Eq for FieldElement {}
+
 impl PartialEq for FieldElement {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
@@ -159,6 +178,21 @@ impl std::fmt::Display for FieldError {
 }
 
 impl StdError for FieldError {}
+
+impl Hash for Field {
+    fn hash_slice<H: std::hash::Hasher>(data: &[Self], state: &mut H)
+    where
+        Self: Sized,
+    {
+        for piece in data {
+            piece.hash(state)
+        }
+    }
+    
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.p.hash(state);
+    }
+}
 
 impl Field {
     pub fn new(p: U256) -> Self {

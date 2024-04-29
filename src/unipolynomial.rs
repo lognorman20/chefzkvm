@@ -6,22 +6,22 @@ use std::{
 
 // TODO: Implement the copy trait to get rid of the `clone()` calls
 #[derive(Debug, Clone)]
-pub struct Polynomial {
+pub struct UPolynomial {
     coefficients: Vec<FieldElement>,
 }
 
-impl ops::Neg for Polynomial {
-    type Output = Polynomial;
+impl ops::Neg for UPolynomial {
+    type Output = UPolynomial;
 
     fn neg(self) -> Self::Output {
-        Polynomial {
+        UPolynomial {
             coefficients: self.coefficients.into_iter().map(|fe| fe.neg()).collect(),
         }
     }
 }
 
-impl ops::Add for Polynomial {
-    type Output = Polynomial;
+impl ops::Add for UPolynomial {
+    type Output = UPolynomial;
 
     fn add(self, rhs: Self) -> Self::Output {
         if self.degree() == -1 {
@@ -43,25 +43,25 @@ impl ops::Add for Polynomial {
                 acc[i] = acc[i] + rhs.coefficients[i];
             }
 
-            Polynomial { coefficients: acc }
+            UPolynomial { coefficients: acc }
         }
     }
 }
 
-impl ops::Sub for Polynomial {
-    type Output = Polynomial;
+impl ops::Sub for UPolynomial {
+    type Output = UPolynomial;
 
     fn sub(self, rhs: Self) -> Self::Output {
         self.add(-rhs)
     }
 }
 
-impl ops::Mul for Polynomial {
-    type Output = Polynomial;
+impl ops::Mul for UPolynomial {
+    type Output = UPolynomial;
 
     fn mul(self, rhs: Self) -> Self::Output {
         if self.coefficients.is_empty() || rhs.coefficients.is_empty() {
-            Polynomial {
+            UPolynomial {
                 coefficients: Vec::new(),
             }
         } else {
@@ -81,13 +81,13 @@ impl ops::Mul for Polynomial {
                 }
             }
 
-            Polynomial { coefficients: buf }
+            UPolynomial { coefficients: buf }
         }
     }
 }
 
-impl ops::Div for Polynomial {
-    type Output = Polynomial;
+impl ops::Div for UPolynomial {
+    type Output = UPolynomial;
 
     fn div(self, rhs: Self) -> Self::Output {
         let (quo, rem) = self.divide(&self, &rhs).unwrap();
@@ -96,7 +96,7 @@ impl ops::Div for Polynomial {
     }
 }
 
-impl PartialEq for Polynomial {
+impl PartialEq for UPolynomial {
     fn eq(&self, rhs: &Self) -> bool {
         self.coefficients == rhs.coefficients
     }
@@ -111,9 +111,9 @@ enum PolynomialError {
     DivByZero(String),
 }
 
-impl Polynomial {
+impl UPolynomial {
     pub fn new(coefficients: Vec<FieldElement>) -> Self {
-        Polynomial { coefficients }
+        UPolynomial { coefficients }
     }
 
     /// Returns the index of where the last non zero `FieldElement` is.
@@ -168,7 +168,7 @@ impl Polynomial {
                 "can't divide by zero big bro",
             )))
         } else if numerator.degree() < denominator.degree() {
-            Ok((Polynomial::new(Vec::new()), numerator.clone()))
+            Ok((UPolynomial::new(Vec::new()), numerator.clone()))
         } else {
             let field = denominator.coefficients[0].field;
             let mut remainder = numerator.clone();
@@ -189,13 +189,13 @@ impl Polynomial {
                         .map(|_| field.zero())
                         .collect::<Vec<FieldElement>>();
                     sub_coeff.push(coefficient);
-                    let subtractee: Polynomial = Polynomial::new(sub_coeff) * (denominator.clone());
+                    let subtractee: UPolynomial = UPolynomial::new(sub_coeff) * (denominator.clone());
                     quotient_coefficients[shift] = coefficient;
                     remainder = remainder - subtractee;
                 }
             }
 
-            let quotient = Polynomial::new(quotient_coefficients);
+            let quotient = UPolynomial::new(quotient_coefficients);
             Ok((quotient, remainder))
         }
     }
@@ -207,11 +207,11 @@ impl Polynomial {
 
     pub fn modexp(&self, exponent: i128) -> Self {
         if self.is_zero() {
-            Polynomial::new(Vec::new())
+            UPolynomial::new(Vec::new())
         } else if exponent == 0 {
-            Polynomial::new(vec![self.coefficients[0].field.one()])
+            UPolynomial::new(vec![self.coefficients[0].field.one()])
         } else {
-            let mut acc = Polynomial::new(vec![self.coefficients[0].field.one()]);
+            let mut acc = UPolynomial::new(vec![self.coefficients[0].field.one()]);
             let binary_str = format!("{:b}", exponent);
             for i in (0..binary_str.len() - 2).rev() {
                 let tmp = acc.clone();
@@ -261,16 +261,16 @@ impl Polynomial {
         );
 
         let field = domain[0].field;
-        let x = Polynomial::new(vec![field.zero(), field.one()]);
-        let mut acc = Polynomial::new(Vec::new());
+        let x = UPolynomial::new(vec![field.zero(), field.one()]);
+        let mut acc = UPolynomial::new(Vec::new());
         for i in 0..domain.len() {
-            let mut prod = Polynomial::new(vec![values[i]]);
+            let mut prod = UPolynomial::new(vec![values[i]]);
             for j in 0..domain.len() {
                 if j == i {
                     continue;
                 } else {
-                    let poly_a = Polynomial::new(vec![domain[j]]);
-                    let poly_b = Polynomial::new(vec![(domain[i] - domain[j]).inverse()]);
+                    let poly_a = UPolynomial::new(vec![domain[j]]);
+                    let poly_b = UPolynomial::new(vec![(domain[i] - domain[j]).inverse()]);
                     prod = prod * ((x.clone() - poly_a) * poly_b); // bad paradigm for sureski
                 }
             }
@@ -282,12 +282,12 @@ impl Polynomial {
 
     pub fn zeroifier_domain(&self, domain: &Vec<FieldElement>) -> Self {
         let field = domain[0].field;
-        let x = Polynomial::new(vec![field.zero(), field.one()]);
-        let mut acc = Polynomial::new(vec![field.one()]);
+        let x = UPolynomial::new(vec![field.zero(), field.one()]);
+        let mut acc = UPolynomial::new(vec![field.one()]);
         for d in domain {
             acc = acc
                 * (x.clone()
-                    - Polynomial {
+                    - UPolynomial {
                         coefficients: vec![*d],
                     }); // bad paradigm for sureski
         }
@@ -295,7 +295,7 @@ impl Polynomial {
     }
 
     pub fn scale(&self, factor: &FieldElement) -> Self {
-        Polynomial {
+        UPolynomial {
             coefficients: (0..self.coefficients.len())
                 .map(|i| (factor.modexp(i)) * self.coefficients[i])
                 .collect(),

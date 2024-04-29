@@ -2,11 +2,13 @@ use bigint::U256;
 
 use crate::{
     algebra::{Field, FieldElement},
-    polynomials::Polynomial,
+    unipolynomial::UPolynomial,
+    multipolynomial::MPolynomial
 };
 
 mod algebra;
-mod polynomials;
+mod unipolynomial;
+mod multipolynomial;
 
 fn main() {
     let p: U256 = U256::from_dec_str("270497897142230380135924736767050121217").unwrap();
@@ -20,8 +22,8 @@ fn main() {
 
     let f_coefficients = [a, b, c, d, e].to_vec();
     let g_coefficients = [a, b, c, d, e].to_vec();
-    let f_x = Polynomial::new(f_coefficients);
-    let g_x = Polynomial::new(g_coefficients);
+    let f_x = UPolynomial::new(f_coefficients);
+    let g_x = UPolynomial::new(g_coefficients);
 
     println!("{:#?}", f_x + g_x);
 }
